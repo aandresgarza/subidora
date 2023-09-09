@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("jsonForm");
     const recordList = document.getElementById("recordList");
     const recordsKey = "jsonRecords";
-    const botonesBorrar = document.querySelectorAll(".borrar-btn");
 
     // Array para almacenar los registros cargados desde el archivo JSON
     let records = [];
@@ -45,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const downloadJsonBtn = document.getElementById("downloadJsonBtn");
     downloadJsonBtn.addEventListener("click", function () {
         // Crear un Blob con el contenido JSON actualizado
-        const updatedJsonBlob = new Blob([JSON.stringify(records)], { type: "application/json" });
+        const updatedJsonBlob = new Blob([localStorage.getItem(recordsKey)], { type: "application/json" });
 
         // Crear un enlace de descarga y simular un clic en él
         const a = document.createElement("a");
@@ -58,17 +57,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Agregar un controlador de eventos al formulario principal para agregar registros
     form.addEventListener("submit", function (event) {
-
-        const data = localStorage.getItem(recordsKey);
-
-
-        // Parsea el contenido de localStorage como JSON para obtener un arreglo
-        const recordsArray = JSON.parse(data);
-
-        // Obtiene el número de elementos en el arreglo
-        const numberOfElements = recordsArray.length;
-
         event.preventDefault();
+        let numberOfElements;
+        const data = localStorage.getItem(recordsKey);
+        if (data) {
+
+            // Parsea el contenido de localStorage como JSON para obtener un arreglo
+            const recordsArray = JSON.parse(data);
+
+            // Obtiene el número de elementos en el arreglo
+            numberOfElements = recordsArray.length;
+        }
+
+
 
         const id = data ? parseInt(numberOfElements) + 1 : 1;
         const title = document.getElementById("title").value;
@@ -97,6 +98,8 @@ document.addEventListener("DOMContentLoaded", function () {
             images: imagesArray
         };
 
+        alert(newRecord)
+
         // Agregar el nuevo registro al arreglo de registros
         records.push(newRecord);
         // Guardar los registros en la caché del navegador
@@ -109,22 +112,29 @@ document.addEventListener("DOMContentLoaded", function () {
         renderRecordList();
     });
 
-    function borrarFila(button) {
-        var fila = button;
-        alert(fila)
-    }
-
-    function borrarFila(id){
-        alert(id)
-    }
-
     // Función para renderizar la lista de registros
     function renderRecordList() {
+
         // Limpiar la lista existente
         recordList.innerHTML = "";
+        let recordsToRender = records;
+
+        const localStorageData = localStorage.getItem(recordsKey);
+
+        if (localStorageData) {
+            try {
+                const localStorageRecords = JSON.parse(localStorageData);
+                // Comprueba que los datos del localStorage sean un arreglo
+                if (Array.isArray(localStorageRecords)) {
+                    recordsToRender = localStorageRecords;
+                }
+            } catch (error) {
+                console.error("Error al analizar los datos del localStorage:", error);
+            }
+        }
 
         // Iterar a través de los registros y crear un formulario de edición para cada uno
-        records.forEach((record, index) => {
+        recordsToRender.forEach((record, index) => {
             const recordForm = document.createElement("form");
             recordForm.innerHTML = `
             
@@ -162,12 +172,12 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
             <div class="d-flex align-items-center justify-content-between">
             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                    <button class="btn btn-outline-secondary borrar-btn" type="button" onclick="borrarFila(this)" data-id="${record.id}" >Borrar</button>
+                    <button class="btn btn-outline-secondary boton-borrar" type="button" data-id="${record.id}" >Borrar</button>
                 </div>
             
             </div>`;
 
-            // Agregar un controlador de eventos para guardar los cambios en el formulario de edición
+
             recordForm.addEventListener("submit", function (event) {
                 event.preventDefault();
 
@@ -203,23 +213,56 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Actualizar la caché del navegador con los registros editados
                 localStorage.setItem(recordsKey, JSON.stringify(records));
 
-                var botonesBorrar = document.querySelectorAll(".boton-borrar");
-                
-
-                // Agregar un event listener a cada botón de borrar
-                botonesBorrar.forEach(function(boton) {
-                    boton.addEventListener("click", function() {
-                        borrarFila(this);
-                    });
-                });
-                
 
 
                 // Renderizar la lista actualizada de registros
                 renderRecordList();
             });
 
+
+
             recordList.appendChild(recordForm);
         });
+
+        addBorrarbutons();
     }
+
+    function addBorrarbutons() {
+        // Agregar un controlador de eventos para guardar los cambios en el formulario de edición
+        var botonesBorrar = document.querySelectorAll(".boton-borrar");
+        alert(JSON.stringify(botonesBorrar))
+
+        // Agregar un event listener a cada botón de borrar
+        botonesBorrar.forEach(function (boton) {
+            boton.addEventListener("click", function () {
+                // Obtiene el ID del atributo de datos del botón
+                const id = boton.dataset.id;
+                borrarElementoLocalStorage(id);
+            });
+
+        });
+
+        function borrarElementoLocalStorage(id) {
+            // Obtén el contenido actual del localStorage para la clave 'recordsKey' (reemplaza 'recordsKey' con el nombre real de tu clave)
+            const localStorageContent = localStorage.getItem(recordsKey);
+
+            // Verifica si el contenido existe en localStorage
+            if (localStorageContent) {
+                // Parsea el contenido de localStorage como JSON para obtener un arreglo de registros
+                const recordsArray = JSON.parse(localStorageContent);
+
+                // Filtra los registros para mantener solo aquellos cuyo ID no coincide con el ID pasado
+                const registrosFiltrados = recordsArray.filter(record => record.id !== parseInt(id));
+                console.log(registrosFiltrados);
+
+                // Actualiza el localStorage con los registros actualizados
+                localStorage.setItem(recordsKey, JSON.stringify(registrosFiltrados));
+
+                // Opcional: Puedes mostrar un mensaje de confirmación o realizar otras acciones después de borrar
+                renderRecordList()
+            }
+        }
+    }
+
+
 });
