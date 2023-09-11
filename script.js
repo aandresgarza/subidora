@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Parsea el contenido de localStorage como JSON para obtener un arreglo
             const recordsArray = JSON.parse(data);
-
+            
             // Obtiene el número de elementos en el arreglo
             numberOfElements = recordsArray.length;
         }
@@ -77,6 +77,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const description = document.getElementById("description").value;
         const linkVntd = document.getElementById("linkVntd").value;
         const linkWll = document.getElementById("linkWll").value;
+        const soldOut = document.getElementById("soldOut").checked;
+        const reserved = document.getElementById("reserved").checked;
         const jsonTextArea = document.getElementById("jsonTextArea").value;
         const lines = jsonTextArea.split('\n');
         const imagesArray = [];
@@ -95,15 +97,23 @@ document.addEventListener("DOMContentLoaded", function () {
             description: description,
             linkVntd: linkVntd,
             linkWll: linkWll,
+            soldOut: soldOut,
+            reserved: reserved,
             images: imagesArray
         };
 
-        alert(newRecord)
-
         // Agregar el nuevo registro al arreglo de registros
-        records.push(newRecord);
+       let upload = {};
+        if (data && data != null) {
+            upload =  JSON.parse(data);
+            upload.unshift(newRecord);
+            localStorage.setItem(recordsKey, JSON.stringify(upload));
+        }else{
+            records.unshift(newRecord);
+            localStorage.setItem(recordsKey, JSON.stringify(records));
+        }
         // Guardar los registros en la caché del navegador
-        localStorage.setItem(recordsKey, JSON.stringify(records));
+        
 
         // Limpiar el formulario
         form.reset();
@@ -120,6 +130,7 @@ document.addEventListener("DOMContentLoaded", function () {
         let recordsToRender = records;
 
         const localStorageData = localStorage.getItem(recordsKey);
+        let localStorageRecords;
 
         if (localStorageData) {
             try {
@@ -132,7 +143,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.error("Error al analizar los datos del localStorage:", error);
             }
         }
-
         // Iterar a través de los registros y crear un formulario de edición para cada uno
         recordsToRender.forEach((record, index) => {
             const recordForm = document.createElement("form");
@@ -167,6 +177,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 <input type="text" class="form-control" id="editLinkWll${index}" value="${record.linkWll}" >
             </div>
             <div class="mb-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="soldOut${index}" class="form-label">Vendido:</label>
+                                <input type="checkbox" id="editSoldOut${index}" ${record.soldOut ? "checked" : ""} />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="reserved${index}" class="form-label">Reservado:</label>
+                                <input type="checkbox" id="editReserved${index}" ${record.reserved ? "checked" : ""} />
+                            </div>
+                        </div>
+                    </div>
+            <div class="mb-3">
                 <label for="editJsonTextArea${index}" class="form-label">URL de Imágenes (una por línea):</label>
                 <textarea class="form-control" id="editJsonTextArea${index}" rows="5">${record.images.join("\n")}</textarea>
             </div>
@@ -180,9 +202,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
             recordForm.addEventListener("submit", function (event) {
                 event.preventDefault();
-
+                let currentIndex
                 // Obtener el índice del formulario actual
-                const currentIndex = records.findIndex((r) => r.id === record.id);
+                let dataStorage = localStorage.getItem(recordsKey);
+                if(dataStorage&& dataStorage!==null){
+                    const parseData = JSON.parse(dataStorage)
+                    currentIndex = parseData.findIndex((r) => r.id === record.id);
+                }else{
+                    currentIndex = records.findIndex((r) => r.id === record.id);
+                }
 
                 // Obtener los valores editados desde el formulario
                 const editedId = parseInt(document.getElementById(`editId${currentIndex}`).value);
@@ -191,6 +219,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 const editedDescription = document.getElementById(`editDescription${currentIndex}`).value;
                 const editedLinkVntd = document.getElementById(`editLinkVntd${currentIndex}`).value;
                 const editedLinkWll = document.getElementById(`editLinkWll${currentIndex}`).value;
+                const editSoldOut = document.getElementById(`editSoldOut${currentIndex}`).checked;
+                const editReserved = document.getElementById(`editReserved${currentIndex}`).checked;
                 const editedJsonTextArea = document.getElementById(`editJsonTextArea${currentIndex}`).value;
                 const editedLines = editedJsonTextArea.split('\n');
                 const editedImagesArray = [];
@@ -208,11 +238,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 record.description = editedDescription;
                 record.linkVntd = editedLinkVntd;
                 record.linkWll = editedLinkWll;
+                record.soldOut = editSoldOut;
+                record.reserved = editReserved;
                 record.images = editedImagesArray;
 
                 // Actualizar la caché del navegador con los registros editados
-                localStorage.setItem(recordsKey, JSON.stringify(records));
-
+                localStorage.setItem(recordsKey, JSON.stringify(recordsToRender));
 
 
                 // Renderizar la lista actualizada de registros
@@ -230,7 +261,6 @@ document.addEventListener("DOMContentLoaded", function () {
     function addBorrarbutons() {
         // Agregar un controlador de eventos para guardar los cambios en el formulario de edición
         var botonesBorrar = document.querySelectorAll(".boton-borrar");
-        alert(JSON.stringify(botonesBorrar))
 
         // Agregar un event listener a cada botón de borrar
         botonesBorrar.forEach(function (boton) {
@@ -253,11 +283,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Filtra los registros para mantener solo aquellos cuyo ID no coincide con el ID pasado
                 const registrosFiltrados = recordsArray.filter(record => record.id !== parseInt(id));
-                console.log(registrosFiltrados);
 
                 // Actualiza el localStorage con los registros actualizados
                 localStorage.setItem(recordsKey, JSON.stringify(registrosFiltrados));
-
                 // Opcional: Puedes mostrar un mensaje de confirmación o realizar otras acciones después de borrar
                 renderRecordList()
             }
