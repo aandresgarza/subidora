@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const a = document.createElement("a");
         a.style.display = "none";
         a.href = URL.createObjectURL(updatedJsonBlob);
-        a.download = "updatedData.json";
+        a.download = "photo.json";
         document.body.appendChild(a);
         a.click();
     });
